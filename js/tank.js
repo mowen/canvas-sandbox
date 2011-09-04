@@ -1,7 +1,5 @@
 (function(window, document) {
 
-    window.addEventListener('load', function() { canvasApp(); }, false);
-
     var DIRECTIONS = {
         up: { dx: 0, dy: -1 },
         down: { dx: 0, dy: 1 },
@@ -125,7 +123,7 @@
         }
     };
 
-    function canvasApp() {
+    window.addEventListener('load', function() {
         if (!Modernizr.canvas) {
 	    return;
         } else {
@@ -133,30 +131,29 @@
 	    var context = theCanvas.getContext('2d');
         }
         
+        var tanks = [
+            new Tank({
+                initialPosition: { x: 50, y: 50 }
+            }),
+
+            new Tank({
+                initialPosition: { x: 450, y: 450 },
+                animationFrames: [9,10,11,12,13,14,15,16],
+                keyCodes: { up: 87, down: 83, left: 65, right: 68 }
+            })
+        ];
+
         var tileSheet = new Image();
         tileSheet.addEventListener('load', function() { setInterval(drawScreen, 100); }, false);
         tileSheet.src = "images/tanks_sheet.png";
         
-        var greenTank = new Tank({
-            initialPosition: { x: 50, y: 50 }
-        });
-
-        var blueTank = new Tank({
-            initialPosition: { x: 450, y: 450 },
-            animationFrames: [9,10,11,12,13,14,15,16],
-            keyCodes: { up: 87, down: 83, left: 65, right: 68 }
-        });
-        
         function drawScreen() {
-            greenTank.move();
-            blueTank.move();
+            _.each(tanks, function(tank) { tank.move() });
 
-	    //draw a background so we can wee the Canvas edges
 	    context.fillStyle = "#aaaaaa";
-	    context.fillRect(0,0,500,500);	    
+	    context.fillRect(0, 0, 500, 500);
 
-            greenTank.draw(tileSheet, context);
-            blueTank.draw(tileSheet, context);
+            _.each(tanks, function(tank) { tank.draw(tileSheet, context) });
         }
-    }
+    }, false);
 })(window, document);
