@@ -2,18 +2,11 @@
 
     window.addEventListener('load', function() { canvasApp(); }, false);
 
-    var KEYS = {
-        UP: 38,
-        DOWN: 40,
-        LEFT: 37,
-        RIGHT: 39
-    };
-
     var DIRECTIONS = {
-        38: { dx: 0, dy: -1 }, // UP
-        40: { dx: 0, dy: 1 },  // DOWN
-        37: { dx: -1, dy: 0 }, // LEFT
-        39: { dx: 1, dy: 0 }   // RIGHT
+        up: { dx: 0, dy: -1 },
+        down: { dx: 0, dy: 1 },
+        left: { dx: -1, dy: 0 },
+        right: { dx: 1, dy: 0 }
     };
 
     var keyPressList = {};
@@ -35,6 +28,7 @@
         this.x = params.initialPosition.x || 50;
         this.y = params.initialPosition.y || 50;
         this.direction = { dx: 0, dy: 0, angle: 180 };
+        this.keyCodes = params.keyCodes || { up: 38, down: 40, left: 37, right: 39 };
     };
 
     Tank.prototype = {
@@ -86,27 +80,27 @@
         },
 
         updateAngle: function() {
-            if (keyPressList[KEYS.UP]) {
-                if (keyPressList[KEYS.LEFT]) { return 315; }
-                else if (keyPressList[KEYS.RIGHT]) { return 45; }
+            if (keyPressList[this.keyCodes.up]) {
+                if (keyPressList[this.keyCodes.left]) { return 315; }
+                else if (keyPressList[this.keyCodes.right]) { return 45; }
                 else { return 0; }
             }
-            else if (keyPressList[KEYS.DOWN]) {
-                if (keyPressList[KEYS.LEFT]) { return 225; }
-                else if (keyPressList[KEYS.RIGHT]) { return 135; }
+            else if (keyPressList[this.keyCodes.down]) {
+                if (keyPressList[this.keyCodes.left]) { return 225; }
+                else if (keyPressList[this.keyCodes.right]) { return 135; }
                 else { return 180; }
             }
-            else if (keyPressList[KEYS.LEFT]) { return 270; }
-            else if (keyPressList[KEYS.RIGHT]) { return 90; }
+            else if (keyPressList[this.keyCodes.left]) { return 270; }
+            else if (keyPressList[this.keyCodes.right]) { return 90; }
             else return null;
         },
 
         updateDeltas: function() {
             var deltas = { dx: 0, dy: 0 };
 
-            var pressedKeys = _.select(_.keys(keyPressList), function(key) { return keyPressList[key]; });
-            _.each(pressedKeys, function(key) {
-                var delta = DIRECTIONS[key];
+            var pressedDirections = this.pressedDirections();
+            _.each(pressedDirections, function(direction) {
+                var delta = DIRECTIONS[direction];
                 if (!_.isUndefined(delta)) {
                     deltas.dx += delta.dx;
                     deltas.dy += delta.dy;
@@ -114,6 +108,16 @@
             });
 
             return deltas;
+        },
+
+        pressedDirections: function() {
+            var pressedKeys = _.select(_.keys(keyPressList), function(keyCode) { return keyPressList[keyCode]; });
+            if (_.isEmpty(pressedKeys))
+                return [];
+            else {
+                var self = this;
+                return _.select(_.keys(this.keyCodes), function(keyCode) { return _.include(pressedKeys, self.keyCodes[keyCode].toString()); });
+            }
         },
 
         isStationary: function() {
@@ -136,7 +140,8 @@
         var greenTank = new Tank({
             initialSpeed: 5,
             initialPosition: { x: 50, y: 50 },
-            animationFrames: [1,2,3,4,5,6,7,8]
+            animationFrames: [1,2,3,4,5,6,7,8],
+            keyCodes: { up: 38, down: 40, left: 37, right: 39 }
         });
         
         function drawScreen() {
