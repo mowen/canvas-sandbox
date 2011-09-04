@@ -24,7 +24,7 @@
     var Tank = function(params) {
         this.animationFrames = params.animationFrames || [1,2,3,4,5,6,7,8];
         this.frameIndex = 0;
-        this.speed = params.initialSpeed || 5;
+        this.speed = params.initialSpeed || 10;
         this.x = params.initialPosition.x || 50;
         this.y = params.initialPosition.y || 50;
         this.direction = { dx: 0, dy: 0, angle: 180 };
@@ -138,20 +138,25 @@
         tileSheet.src = "images/tanks_sheet.png";
         
         var greenTank = new Tank({
-            initialSpeed: 5,
-            initialPosition: { x: 50, y: 50 },
-            animationFrames: [1,2,3,4,5,6,7,8],
-            keyCodes: { up: 38, down: 40, left: 37, right: 39 }
+            initialPosition: { x: 50, y: 50 }
+        });
+
+        var blueTank = new Tank({
+            initialPosition: { x: 450, y: 450 },
+            animationFrames: [9,10,11,12,13,14,15,16],
+            keyCodes: { up: 87, down: 83, left: 65, right: 68 }
         });
         
         function drawScreen() {
             greenTank.move();
+            blueTank.move();
 
 	    //draw a background so we can wee the Canvas edges
 	    context.fillStyle = "#aaaaaa";
 	    context.fillRect(0,0,500,500);	    
 
             greenTank.draw(tileSheet, context);
+            blueTank.draw(tileSheet, context);
         }
     }
 })(window, document);
