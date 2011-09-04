@@ -1,5 +1,11 @@
 (function(window, document) {
 
+    _.mixin({
+        degreesToRadians: function(angleInDegrees) {
+            return angleInDegrees * Math.PI / 180;
+        }
+    });
+
     var DIRECTIONS = {
         up: { dx: 0, dy: -1 },
         down: { dx: 0, dy: 1 },
@@ -25,6 +31,8 @@
         this.speed = params.initialSpeed || 10;
         this.x = params.initialPosition.x || 50;
         this.y = params.initialPosition.y || 50;
+        this.height = params.height || 32;
+        this.width = params.width || 32;
         this.direction = { dx: 0, dy: 0, angle: 180 };
         this.keyCodes = params.keyCodes || { up: 38, down: 40, left: 37, right: 39 };
     };
@@ -34,14 +42,13 @@
 	    context.save();
 
             context.setTransform(1, 0, 0, 1, 0, 0);
-	    context.translate(this.x + 16, this.y + 16)
+	    context.translate(this.x + (this.width/2), this.y + (this.height/2))
 
-	    var angleInRadians = this.direction.angle * Math.PI / 180;
-	    context.rotate(angleInRadians);
+	    context.rotate(_.degreesToRadians(this.direction.angle));
 
-	    var sourceX = Math.floor(this.getCurrentFrame() % 8) * 32;
-	    var sourceY = Math.floor(this.getCurrentFrame() / 8) * 32;	    
-	    context.drawImage(tileSheet, sourceX, sourceY, 32, 32, -16, -16, 32, 32);
+	    var sourceX = Math.floor(this.getCurrentFrame() % this.animationFrames.length) * this.width;
+	    var sourceY = Math.floor(this.getCurrentFrame() / this.animationFrames.length) * this.height;	    
+	    context.drawImage(tileSheet, sourceX, sourceY, this.width, this.height, 0 - this.width/2, 0 - this.height/2, this.width, this.height);
 
             context.restore();
 
@@ -109,12 +116,17 @@
         },
 
         pressedDirections: function() {
-            var pressedKeys = _.select(_.keys(keyPressList), function(keyCode) { return keyPressList[keyCode]; });
+            var pressedKeys = _(keyPressList).chain().keys().select(function(keyCode) {
+                return keyPressList[keyCode];
+            }).value();
+            
             if (_.isEmpty(pressedKeys))
                 return [];
             else {
                 var self = this;
-                return _.select(_.keys(this.keyCodes), function(keyCode) { return _.include(pressedKeys, self.keyCodes[keyCode].toString()); });
+                return _(this.keyCodes).chain().keys().select(function(keyCode) {
+                    return _.include(pressedKeys, self.keyCodes[keyCode].toString());
+                }).value();
             }
         },
 
