@@ -26,15 +26,24 @@
     };
 
     var Tank = function(params) {
-        this.animationFrames = params.animationFrames || [1,2,3,4,5,6,7,8];
-        this.frameIndex = 0;
-        this.speed = params.initialSpeed || 10;
-        this.x = params.initialPosition.x || 50;
-        this.y = params.initialPosition.y || 50;
-        this.height = params.height || 32;
-        this.width = params.width || 32;
-        this.direction = { dx: 0, dy: 0, angle: 180 };
-        this.keyCodes = params.keyCodes || { up: 38, down: 40, left: 37, right: 39 };
+        this.x = params.initialPosition.x;
+        this.y = params.initialPosition.y;
+        this.speed = params.initialSpeed;
+
+        _.extend(this, {
+            animationFrames: params.animationFrames,
+            keyCodes: params.keyCodes           
+        });
+
+        _.defaults(this, {
+            animationFrames: [1,2,3,4,5,6,7,8],
+            frameIndex: 0,
+            speed: 10,
+            x: 50,
+            y: 50,
+            direction: { dx: 0, dy: 0, angle: 180 },
+            keyCodes: { up: 38, down: 40, left: 37, right: 39, fire: 13 }
+        });
     };
 
     Tank.prototype = {
@@ -61,6 +70,7 @@
             this.direction = this.updateDirection();
             this.x += (this.direction.dx * this.speed);
             this.y += (this.direction.dy * this.speed);
+            if (this.fireKeyIsPressed()) this.fireBullet();
         },
 
         advanceFrame: function() {
@@ -132,7 +142,72 @@
 
         isStationary: function() {
             return (this.direction.dx === 0 && this.direction.dy === 0);
+        },
+
+        fireKeyIsPressed: function() {
+            var fireKeyIsPressed = keyPressList[this.keyCodes.fire];
+            if (_.isUndefined(fireKeyIsPressed)) return false;
+            return fireKeyIsPressed;
+        },
+
+        fireBullet: function() {
+            var self = this;
+            _.each(this.fireBulletHandlers, function(fireBulletHandler) {
+                fireBulletHandler(self);
+            });
+        },
+
+        addFireBulletHandler: function(fireBulletHandler) {
+            this.fireBulletHandlers = this.fireBulletHandlers || [];
+            this.fireBulletHandlers.push(fireBulletHandler);
         }
+    };
+
+    var Bullet = function(params) {
+        this.speed = params.speed || 20;
+        
+        var frame = params.frame || 21;
+        this.sourceX = Math.floor(frame % 8) * 32;
+	this.sourceY = Math.floor(frame / 8) * 32;
+
+        this.firedBy = params.firedBy;
+        this.x = this.firedBy.x;
+        this.y = this.firedBy.y;
+
+        var directions = this.firedBy.pressedDirections();
+        this.deltas = this.getDeltas(directions);
+    };
+
+    Bullet.prototype = {
+        draw: function(tileSheet, context) {
+	    context.save();
+
+            context.setTransform(1, 0, 0, 1, 0, 0);
+	    context.translate(this.x + 16, this.y + 16)
+
+	    context.drawImage(tileSheet, this.sourceX, this.sourceY, 32, 32, -16, -16, 32, 32);
+
+            context.restore();
+        },
+
+        move: function() {
+            this.x += this.deltas.dx * this.speed;
+            this.y += this.deltas.dy * this.speed;
+        },
+
+        getDeltas: function(directions) {
+            var deltas = { dx: 0, dy: 0 };
+
+            _.each(directions, function(direction) {
+                var delta = DIRECTIONS[direction];
+                if (!_.isUndefined(delta)) {
+                    deltas.dx += delta.dx;
+                    deltas.dy += delta.dy;
+                }
+            });
+
+            return deltas;
+        }        
     };
 
     window.addEventListener('load', function() {
@@ -151,21 +226,31 @@
             new Tank({
                 initialPosition: { x: 450, y: 450 },
                 animationFrames: [9,10,11,12,13,14,15,16],
-                keyCodes: { up: 87, down: 83, left: 65, right: 68 }
+                keyCodes: { up: 87, down: 83, left: 65, right: 68, fire: 32 }
             })
         ];
+
+        var objects = tanks.slice(0);
+
+        _.each(tanks, function(tank) {
+            tank.addFireBulletHandler(function(tank) {
+                // use unshift so that the bullet will go to the
+                // front of the array and be drawn underneath the tanks
+                objects.unshift(new Bullet({ firedBy: tank }));
+            });
+        });
 
         var tileSheet = new Image();
         tileSheet.addEventListener('load', function() { setInterval(drawScreen, 100); }, false);
         tileSheet.src = "images/tanks_sheet.png";
         
         function drawScreen() {
-            _.each(tanks, function(tank) { tank.move() });
+            _.each(objects, function(object) { object.move(); });
 
 	    context.fillStyle = "#aaaaaa";
 	    context.fillRect(0, 0, 500, 500);
 
-            _.each(tanks, function(tank) { tank.draw(tileSheet, context) });
+            _.each(objects, function(object) { object.draw(tileSheet, context); });
         }
     }, false);
 })(window, document);
