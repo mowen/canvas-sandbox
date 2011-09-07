@@ -41,6 +41,8 @@
             speed: 10,
             x: 50,
             y: 50,
+            height: 32,
+            width: 32,
             direction: { dx: 0, dy: 0, angle: 180 },
             keyCodes: { up: 38, down: 40, left: 37, right: 39, fire: 13 }
         });
