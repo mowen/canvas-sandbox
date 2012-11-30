@@ -1,5 +1,4 @@
-root = global ? window
-root._ = _
+root = exports ? this
 
 _.mixin(
   degreesToRadians: (angleInDegrees) ->
@@ -197,7 +196,7 @@ class Bullet
       dx: 0
       dy: 0
 
-    addToDeltas: (direction) ->
+    addToDeltas = (direction) ->
       delta = DIRECTIONS[direction]
       if not _.isUndefined(delta)
         deltas.dx += delta.dx
@@ -212,7 +211,7 @@ window.addEventListener('load', ->
     return
   else
     theCanvas = document.getElementById 'canvas'
-	  root.context = theCanvas.getContext '2d'
+    context = theCanvas.getContext '2d'
 
   tanks = [
     new Tank(
@@ -236,7 +235,7 @@ window.addEventListener('load', ->
     )
   ]
 
-  root.objects = tanks.slice 0
+  objects = tanks.slice 0
 
   _.each(tanks, (tank) ->
     tank.addFireBulletHandler((tank) ->
@@ -246,7 +245,7 @@ window.addEventListener('load', ->
     )
   )
 
-  root.tileSheet = new Image()
+  tileSheet = new Image()
   tileSheet.addEventListener('load', ->
     setInterval(drawScreen, 100)
   , false)
