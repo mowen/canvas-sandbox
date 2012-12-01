@@ -239,11 +239,10 @@ window.addEventListener('load', ->
 
   for tank in tanks
     do (tank) ->
-      tank.addFireBulletHandler((tank) ->
+      tank.addFireBulletHandler (tank) ->
         # use unshift so that the bullet will go to the
         # front of the array and be drawn underneath the tanks
         objects.unshift new Bullet(firedBy: tank)
-      )
 
   tileSheet = new Image()
   tileSheet.addEventListener('load', ->
