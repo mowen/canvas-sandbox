@@ -260,7 +260,7 @@
   })();
 
   window.addEventListener('load', function() {
-    var context, drawScreen, objects, tanks, theCanvas, tileSheet;
+    var context, drawScreen, objects, tank, tanks, theCanvas, tileSheet, _fn, _i, _len;
     if (!Modernizr.canvas) {
       return;
     } else {
@@ -289,27 +289,36 @@
       })
     ];
     objects = tanks.slice(0);
-    _.each(tanks, function(tank) {
+    _fn = function(tank) {
       return tank.addFireBulletHandler(function(tank) {
         return objects.unshift(new Bullet({
           firedBy: tank
         }));
       });
-    });
+    };
+    for (_i = 0, _len = tanks.length; _i < _len; _i++) {
+      tank = tanks[_i];
+      _fn(tank);
+    }
     tileSheet = new Image();
     tileSheet.addEventListener('load', function() {
       return setInterval(drawScreen, 100);
     }, false);
     tileSheet.src = 'images/tanks_sheet.png';
     return drawScreen = function() {
-      _.each(objects, function(object) {
-        return object.move();
-      });
+      var object, _j, _k, _len2, _len3, _results;
+      for (_j = 0, _len2 = objects.length; _j < _len2; _j++) {
+        object = objects[_j];
+        object.move();
+      }
       context.fillStyle = "#aaaaaa";
       context.fillRect(0, 0, 500, 500);
-      return _.each(objects, function(object) {
-        return object.draw(tileSheet, context);
-      });
+      _results = [];
+      for (_k = 0, _len3 = objects.length; _k < _len3; _k++) {
+        object = objects[_k];
+        _results.push(object.draw(tileSheet, context));
+      }
+      return _results;
     };
   }, false);
 

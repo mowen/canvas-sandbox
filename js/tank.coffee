@@ -237,13 +237,13 @@ window.addEventListener('load', ->
 
   objects = tanks.slice 0
 
-  _.each(tanks, (tank) ->
-    tank.addFireBulletHandler((tank) ->
-      # use unshift so that the bullet will go to the
-      # front of the array and be drawn underneath the tanks
-      objects.unshift new Bullet(firedBy: tank)
-    )
-  )
+  for tank in tanks
+    do (tank) ->
+      tank.addFireBulletHandler((tank) ->
+        # use unshift so that the bullet will go to the
+        # front of the array and be drawn underneath the tanks
+        objects.unshift new Bullet(firedBy: tank)
+      )
 
   tileSheet = new Image()
   tileSheet.addEventListener('load', ->
@@ -252,11 +252,11 @@ window.addEventListener('load', ->
   tileSheet.src = 'images/tanks_sheet.png'
 
   drawScreen = ->
-    _.each objects, (object) -> object.move()
+    object.move() for object in objects
 
     context.fillStyle = "#aaaaaa"
     context.fillRect 0, 0, 500, 500
 
-    _.each objects, (object) -> object.draw(tileSheet, context)
+    object.draw(tileSheet, context) for object in objects
 
 , false)
