@@ -27,6 +27,36 @@ document.onkeydown = (ev = window.event) ->
 document.onkeyup = (ev = window.event) ->
   keyPressList[ev.keyCode] = false
 
+class Map
+  tiles:
+    '#': [2, 3]
+    '@': [0, 6]
+    ' ': [0, 0]
+
+  tileWidth: 32
+  tileHeight: 32
+
+  constructor: (mapString) ->
+    mapChars = (row.split '' for row in mapString.split "\n")
+    @map = (for row in mapChars
+      for col in row
+        @tiles[col])
+
+  draw: (tileSheet, context) ->
+    for row, y in @map
+      for tile, x in row
+        continue if not tile
+
+        sourceX = tile[0] * @tileWidth
+        sourceY = tile[1] * @tileHeight
+        destX = x * @tileHeight
+        destY = y * @tileWidth
+
+        context.save()
+        context.drawImage(tileSheet, sourceX, sourceY, @tileWidth, @tileHeight, destX, destY, @tileWidth, @tileHeight)
+        context.restore()
+
+
 class Tank
   constructor: (params) ->
     @x = params.initialPosition.x
@@ -251,10 +281,30 @@ window.addEventListener('load', ->
   tileSheet.src = 'images/tanks_sheet.png'
 
   drawScreen = ->
-    object.move() for object in objects
+    mapString = """
+    #####################
+    #  @                #
+    #  @                #
+    #                   #
+    #           @@      #
+    #           @       #
+    #   @@@     @       #
+    #   @               #
+    #             @@    #
+    #              @@   #
+    #       @@@@        #
+    #                   #
+    #    @         @    #
+    #   @@@      @@@    #
+    #           @@@     #
+    #                   #
+    #####################
+    """
 
-    context.fillStyle = "#aaaaaa"
-    context.fillRect 0, 0, 500, 500
+    map = new Map mapString
+    map.draw(tileSheet, context)
+
+    object.move() for object in objects
 
     object.draw(tileSheet, context) for object in objects
 

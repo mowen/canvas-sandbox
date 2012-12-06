@@ -1,5 +1,5 @@
 (function() {
-  var Bullet, Tank, root;
+  var Bullet, Map, Tank, root;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
@@ -39,6 +39,79 @@
     if (ev == null) ev = window.event;
     return keyPressList[ev.keyCode] = false;
   };
+
+  Map = (function() {
+
+    Map.prototype.tiles = {
+      '#': [2, 3],
+      '@': [0, 6],
+      ' ': [0, 0]
+    };
+
+    Map.prototype.tileWidth = 32;
+
+    Map.prototype.tileHeight = 32;
+
+    function Map(mapString) {
+      var col, mapChars, row;
+      mapChars = (function() {
+        var _i, _len, _ref, _results;
+        _ref = mapString.split("\n");
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          row = _ref[_i];
+          _results.push(row.split(''));
+        }
+        return _results;
+      })();
+      this.map = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = mapChars.length; _i < _len; _i++) {
+          row = mapChars[_i];
+          _results.push((function() {
+            var _j, _len2, _results2;
+            _results2 = [];
+            for (_j = 0, _len2 = row.length; _j < _len2; _j++) {
+              col = row[_j];
+              _results2.push(this.tiles[col]);
+            }
+            return _results2;
+          }).call(this));
+        }
+        return _results;
+      }).call(this);
+    }
+
+    Map.prototype.draw = function(tileSheet, context) {
+      var destX, destY, row, sourceX, sourceY, tile, x, y, _len, _ref, _results;
+      _ref = this.map;
+      _results = [];
+      for (y = 0, _len = _ref.length; y < _len; y++) {
+        row = _ref[y];
+        _results.push((function() {
+          var _len2, _results2;
+          _results2 = [];
+          for (x = 0, _len2 = row.length; x < _len2; x++) {
+            tile = row[x];
+            if (!tile) continue;
+            sourceX = tile[0] * this.tileWidth;
+            sourceY = tile[1] * this.tileHeight;
+            destX = x * this.tileHeight;
+            destY = y * this.tileWidth;
+            context.save();
+            context.drawImage(tileSheet, sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+            _results2.push(context.restore());
+          }
+          return _results2;
+        }).call(this));
+      }
+      return _results;
+    };
+
+    return Map;
+
+  })();
 
   Tank = (function() {
 
@@ -306,13 +379,14 @@
     }, false);
     tileSheet.src = 'images/tanks_sheet.png';
     return drawScreen = function() {
-      var object, _j, _k, _len2, _len3, _results;
+      var map, mapString, object, _j, _k, _len2, _len3, _results;
+      mapString = "#####################\n#  @                #\n#  @                #\n#                   #\n#           @@      #\n#           @       #\n#   @@@     @       #\n#   @               #\n#             @@    #\n#              @@   #\n#       @@@@        #\n#                   #\n#    @         @    #\n#   @@@      @@@    #\n#           @@@     #\n#                   #\n#####################";
+      map = new Map(mapString);
+      map.draw(tileSheet, context);
       for (_j = 0, _len2 = objects.length; _j < _len2; _j++) {
         object = objects[_j];
         object.move();
       }
-      context.fillStyle = "#aaaaaa";
-      context.fillRect(0, 0, 500, 500);
       _results = [];
       for (_k = 0, _len3 = objects.length; _k < _len3; _k++) {
         object = objects[_k];
