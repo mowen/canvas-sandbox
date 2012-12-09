@@ -33,29 +33,17 @@ class Map
     '@': [0, 6]
     ' ': [0, 0]
 
-  tileWidth: 32
-  tileHeight: 32
-
   constructor: (mapString) ->
     mapChars = (row.split '' for row in mapString.split "\n")
     @map = (for row in mapChars
       for col in row
         @tiles[col])
 
-  draw: (tileSheet, context) ->
+  draw: (gfx) ->
     for row, y in @map
       for tile, x in row
         continue if not tile
-
-        sourceX = tile[0] * @tileWidth
-        sourceY = tile[1] * @tileHeight
-        destX = x * @tileHeight
-        destY = y * @tileWidth
-
-        context.save()
-        context.drawImage(tileSheet, sourceX, sourceY, @tileWidth, @tileHeight, destX, destY, @tileWidth, @tileHeight)
-        context.restore()
-
+        gfx.drawSprite tile[0], tile[1], x*gfx.tileWidth, y*gfx.tileHeight
 
 class Tank
   constructor: (params) ->
@@ -86,19 +74,13 @@ class Tank
 
     _.defaults @, defaults
 
-  draw: (tileSheet, context) ->
-    context.save()
+  draw: (gfx) ->
+    tileX = Math.floor(@getCurrentFrame() % @animationFrames.length)
+    tileY = Math.floor(@getCurrentFrame() / @animationFrames.length)
+    destX = @x + (gfx.tileWidth/2)
+    destY = @y + (gfx.tileHeight/2)
 
-    context.setTransform 1, 0, 0, 1, 0, 0
-    context.translate(@x + (@width/2), @y + (@height/2))
-
-    context.rotate(_.degreesToRadians(@direction.angle))
-
-    sourceX = Math.floor(@getCurrentFrame() % @animationFrames.length) * @width
-    sourceY = Math.floor(@getCurrentFrame() / @animationFrames.length) * @height
-    context.drawImage(tileSheet, sourceX, sourceY, @width, @height, 0 - @width/2, 0 - @height/2, @width, @height)
-
-    context.restore()
+    gfx.drawRotatedSprite tileX, tileY, destX, destY, @direction.angle
 
     if not @isStationary()
       @advanceFrame()
@@ -197,8 +179,8 @@ class Bullet
     @speed = params.speed || 20
 
     frame = params.frame || 21
-    @sourceX = (Math.floor(frame % 8) * 32)
-    @sourceY = (Math.floor(frame / 8) * 32)
+    @tileX = (Math.floor(frame % 8) * 32)
+    @tileY = (Math.floor(frame / 8) * 32)
 
     @firedBy = params.firedBy
     @x = @firedBy.x
@@ -207,15 +189,16 @@ class Bullet
     directions = @firedBy.pressedDirections()
     @deltas = @getDeltas(directions)
 
-  draw: (tileSheet, context) ->
-    context.save()
+  draw: (gfx) ->
+    # context.save()
 
-    context.setTransform 1, 0, 0, 1, 0, 0
-    context.translate @x + 16, @y + 16
+    # context.setTransform 1, 0, 0, 1, 0, 0
+    # context.translate @x + 16, @y + 16
 
-    context.drawImage tileSheet, @sourceX, @sourceY, 32, 32, -16, -16, 32, 32
+    # context.drawImage tileSheet, @sourceX, @sourceY, 32, 32, -16, -16, 32, 32
 
-    context.restore()
+    # context.restore()
+    gfx.drawRotatedSprite @tileX, @tileY, @x, @y
 
   move: ->
     @x += @deltas.dx * @speed
@@ -235,6 +218,49 @@ class Bullet
     addToDeltas direction for direction in directions
 
     deltas
+
+class Graphics
+
+  tileWidth: 32
+  tileHeight: 32
+
+  constructor: (@context, @tileSheet) ->
+
+  drawSprite: (tileX, tileY, destX, destY) ->
+    sourceX = tileX * @tileWidth
+    sourceY = tileY * @tileHeight
+
+    @context.save()
+
+    @context.drawImage @tileSheet, sourceX, sourceY, @tileWidth, @tileHeight, destX, destY, @tileWidth, @tileHeight
+
+    @context.restore()
+
+  # drawCenteredSprite: (tileX, tileY, destX, destY) ->
+  #   sourceX = tileX * @tileWidth
+  #   sourceY = tileY * @tileHeight
+
+  #   @context.save()
+
+  #   @context.setTransform 1, 0, 0, 1, 0, 0
+  #   @context.translate destX + @tileWidth/2, destY + @tileHeight/2
+
+  #   @context.drawImage @tileSheet, sourceX, sourceY, @tileWidth, @tileHeight, @tileWidth/2*-1, @tileHeight/2*-1, @tileWidth, @tileHeight
+
+  #   @context.restore()
+
+  drawRotatedSprite: (tileX, tileY, destX, destY, angle=0) ->
+    sourceX = tileX * @tileWidth
+    sourceY = tileY * @tileHeight
+
+    @context.save()
+
+    @context.setTransform 1, 0, 0, 1, 0, 0
+    @context.translate destX + @tileWidth/2, destY + @tileHeight/2
+    @context.rotate(_.degreesToRadians(angle))
+    @context.drawImage @tileSheet, sourceX, sourceY, @tileWidth, @tileHeight, @tileWidth/2*-1, @tileHeight/2*-1, @tileWidth, @tileHeight
+
+    @context.restore()
 
 window.addEventListener('load', ->
   if not Modernizr.canvas
@@ -281,6 +307,9 @@ window.addEventListener('load', ->
   tileSheet.src = 'images/tanks_sheet.png'
 
   drawScreen = ->
+
+    gfx = new Graphics context, tileSheet
+
     mapString = """
     #####################
     #  @                #
@@ -302,10 +331,10 @@ window.addEventListener('load', ->
     """
 
     map = new Map mapString
-    map.draw(tileSheet, context)
+    map.draw gfx
 
     object.move() for object in objects
 
-    object.draw(tileSheet, context) for object in objects
+    object.draw gfx for object in objects
 
 , false)

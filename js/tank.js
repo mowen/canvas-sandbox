@@ -1,5 +1,5 @@
 (function() {
-  var Bullet, Map, Tank, root;
+  var Bullet, Graphics, Map, Tank, root;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
@@ -48,10 +48,6 @@
       ' ': [0, 0]
     };
 
-    Map.prototype.tileWidth = 32;
-
-    Map.prototype.tileHeight = 32;
-
     function Map(mapString) {
       var col, mapChars, row;
       mapChars = (function() {
@@ -83,8 +79,8 @@
       }).call(this);
     }
 
-    Map.prototype.draw = function(tileSheet, context) {
-      var destX, destY, row, sourceX, sourceY, tile, x, y, _len, _ref, _results;
+    Map.prototype.draw = function(gfx) {
+      var row, tile, x, y, _len, _ref, _results;
       _ref = this.map;
       _results = [];
       for (y = 0, _len = _ref.length; y < _len; y++) {
@@ -95,16 +91,10 @@
           for (x = 0, _len2 = row.length; x < _len2; x++) {
             tile = row[x];
             if (!tile) continue;
-            sourceX = tile[0] * this.tileWidth;
-            sourceY = tile[1] * this.tileHeight;
-            destX = x * this.tileHeight;
-            destY = y * this.tileWidth;
-            context.save();
-            context.drawImage(tileSheet, sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
-            _results2.push(context.restore());
+            _results2.push(gfx.drawSprite(tile[0], tile[1], x * gfx.tileWidth, y * gfx.tileHeight));
           }
           return _results2;
-        }).call(this));
+        })());
       }
       return _results;
     };
@@ -146,16 +136,13 @@
       _.defaults(this, defaults);
     }
 
-    Tank.prototype.draw = function(tileSheet, context) {
-      var sourceX, sourceY;
-      context.save();
-      context.setTransform(1, 0, 0, 1, 0, 0);
-      context.translate(this.x + (this.width / 2), this.y + (this.height / 2));
-      context.rotate(_.degreesToRadians(this.direction.angle));
-      sourceX = Math.floor(this.getCurrentFrame() % this.animationFrames.length) * this.width;
-      sourceY = Math.floor(this.getCurrentFrame() / this.animationFrames.length) * this.height;
-      context.drawImage(tileSheet, sourceX, sourceY, this.width, this.height, 0 - this.width / 2, 0 - this.height / 2, this.width, this.height);
-      context.restore();
+    Tank.prototype.draw = function(gfx) {
+      var destX, destY, tileX, tileY;
+      tileX = Math.floor(this.getCurrentFrame() % this.animationFrames.length);
+      tileY = Math.floor(this.getCurrentFrame() / this.animationFrames.length);
+      destX = this.x + (gfx.tileWidth / 2);
+      destY = this.y + (gfx.tileHeight / 2);
+      gfx.drawRotatedSprite(tileX, tileY, destX, destY, this.direction.angle);
       if (!this.isStationary()) return this.advanceFrame();
     };
 
@@ -285,8 +272,8 @@
       var directions, frame;
       this.speed = params.speed || 20;
       frame = params.frame || 21;
-      this.sourceX = Math.floor(frame % 8) * 32;
-      this.sourceY = Math.floor(frame / 8) * 32;
+      this.tileX = Math.floor(frame % 8) * 32;
+      this.tileY = Math.floor(frame / 8) * 32;
       this.firedBy = params.firedBy;
       this.x = this.firedBy.x;
       this.y = this.firedBy.y;
@@ -294,12 +281,8 @@
       this.deltas = this.getDeltas(directions);
     }
 
-    Bullet.prototype.draw = function(tileSheet, context) {
-      context.save();
-      context.setTransform(1, 0, 0, 1, 0, 0);
-      context.translate(this.x + 16, this.y + 16);
-      context.drawImage(tileSheet, this.sourceX, this.sourceY, 32, 32, -16, -16, 32, 32);
-      return context.restore();
+    Bullet.prototype.draw = function(gfx) {
+      return gfx.drawRotatedSprite(this.tileX, this.tileY, this.x, this.y);
     };
 
     Bullet.prototype.move = function() {
@@ -329,6 +312,43 @@
     };
 
     return Bullet;
+
+  })();
+
+  Graphics = (function() {
+
+    Graphics.prototype.tileWidth = 32;
+
+    Graphics.prototype.tileHeight = 32;
+
+    function Graphics(context, tileSheet) {
+      this.context = context;
+      this.tileSheet = tileSheet;
+    }
+
+    Graphics.prototype.drawSprite = function(tileX, tileY, destX, destY) {
+      var sourceX, sourceY;
+      sourceX = tileX * this.tileWidth;
+      sourceY = tileY * this.tileHeight;
+      this.context.save();
+      this.context.drawImage(this.tileSheet, sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+      return this.context.restore();
+    };
+
+    Graphics.prototype.drawRotatedSprite = function(tileX, tileY, destX, destY, angle) {
+      var sourceX, sourceY;
+      if (angle == null) angle = 0;
+      sourceX = tileX * this.tileWidth;
+      sourceY = tileY * this.tileHeight;
+      this.context.save();
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
+      this.context.translate(destX + this.tileWidth / 2, destY + this.tileHeight / 2);
+      this.context.rotate(_.degreesToRadians(angle));
+      this.context.drawImage(this.tileSheet, sourceX, sourceY, this.tileWidth, this.tileHeight, this.tileWidth / 2 * -1, this.tileHeight / 2 * -1, this.tileWidth, this.tileHeight);
+      return this.context.restore();
+    };
+
+    return Graphics;
 
   })();
 
@@ -379,10 +399,11 @@
     }, false);
     tileSheet.src = 'images/tanks_sheet.png';
     return drawScreen = function() {
-      var map, mapString, object, _j, _k, _len2, _len3, _results;
+      var gfx, map, mapString, object, _j, _k, _len2, _len3, _results;
+      gfx = new Graphics(context, tileSheet);
       mapString = "#####################\n#  @                #\n#  @                #\n#                   #\n#           @@      #\n#           @       #\n#   @@@     @       #\n#   @               #\n#             @@    #\n#              @@   #\n#       @@@@        #\n#                   #\n#    @         @    #\n#   @@@      @@@    #\n#           @@@     #\n#                   #\n#####################";
       map = new Map(mapString);
-      map.draw(tileSheet, context);
+      map.draw(gfx);
       for (_j = 0, _len2 = objects.length; _j < _len2; _j++) {
         object = objects[_j];
         object.move();
@@ -390,7 +411,7 @@
       _results = [];
       for (_k = 0, _len3 = objects.length; _k < _len3; _k++) {
         object = objects[_k];
-        _results.push(object.draw(tileSheet, context));
+        _results.push(object.draw(gfx));
       }
       return _results;
     };
